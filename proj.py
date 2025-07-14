@@ -47,8 +47,8 @@ st.sidebar.header("👤 Personal Information")
 name = st.sidebar.text_input("Enter your name:", placeholder="Your Name")
 age = st.sidebar.number_input("Enter your age:", min_value=1, max_value=120, value=25)
 city = st.sidebar.text_input("Enter your city:", placeholder="City Name")
-area = st.sidebar.text_input("Enter your area name:", placeholder="Area Name")
-housing_type = st.sidebar.selectbox("Where do you live?", ["House", "Tenement"]).lower()
+
+housing_type = st.sidebar.selectbox("Where do you live?", ["Flat", "Tenement", "Bungalow"]).lower()
 
 # Appliances section
 st.sidebar.header("🏠 Appliances")
@@ -60,7 +60,7 @@ if name:
     st.success(f"Welcome, {name}! 👋")
     
     # Display user info
-    st.write(f"**Age:** {age} | **City:** {city} | **Area:** {area} | **Housing:** {housing_type.title()}")
+    st.write(f"**Age:** {age} | **City:** {city} | **Housing:** {housing_type.title()}")
     
     st.markdown("---")
     
@@ -83,20 +83,17 @@ if name:
         # Create a form for each day
         for day in days:
             with st.expander(f"📅 {day}", expanded=False):
-                # Room usage
-                room_usage = st.selectbox(
-                    f"How many BHK do you use on {day}?",
-                    [1, 2, 3],
+                # Room usage - Changed from BHK to rooms
+                room_count = st.number_input(
+                    f"How many rooms do you use on {day}?",
+                    min_value=1,
+                    max_value=10,
+                    value=2,
                     key=f"room_{day}"
                 )
                 
-                # Calculate base energy for rooms
-                if room_usage == 1:
-                    base_energy = 2 * 0.4 + 2 * 0.8  # 2.4 kWh
-                elif room_usage == 2:
-                    base_energy = 3 * 0.4 + 3 * 0.8  # 3.6 kWh
-                elif room_usage == 3:
-                    base_energy = 4 * 0.4 + 4 * 0.8  # 4.8 kWh
+                # Calculate base energy for rooms (0.6 kWh per room)
+                base_energy = room_count * 0.6
                 
                 # AC usage
                 ac_count = st.number_input(
@@ -128,7 +125,7 @@ if name:
                 
                 # Store daily data
                 st.session_state.daily_data[day] = {
-                    'bhk': room_usage,
+                    'rooms': room_count,
                     'ac_count': ac_count,
                     'fridge': fridge_usage,
                     'washing_machine': wm_usage,
@@ -138,7 +135,7 @@ if name:
                 
                 # Display daily summary
                 st.info(f"**Total Energy for {day}: {total_energy:.1f} kWh**")
-                st.write(f"Breakdown: Base ({room_usage} BHK): {base_energy:.1f} + AC: {ac_count * 3} + Fridge: {4 if fridge_usage else 0} + WM: {4 if wm_usage else 0}")
+                st.write(f"Breakdown: Base ({room_count} rooms): {base_energy:.1f} + AC: {ac_count * 3} + Fridge: {4 if fridge_usage else 0} + WM: {4 if wm_usage else 0}")
     
     with col2:
         st.subheader("Quick Summary")
@@ -183,7 +180,7 @@ if name:
                 data = st.session_state.daily_data[day]
                 table_data.append({
                     'Day': day,
-                    'BHK Used': data['bhk'],
+                    'Rooms Used': data['rooms'],
                     'AC Count': data['ac_count'],
                     'Fridge Used': '✅' if data['fridge'] else '❌',
                     'Washing Machine': '✅' if data['washing_machine'] else '❌',
@@ -230,8 +227,11 @@ if name:
     
     # Reset button
     if st.button("🔄 Reset All Data", type="secondary"):
+        for key in list(st.session_state.keys()):
+            if key.startswith(('room_', 'ac_', 'fridge_', 'wm_')):
+                del st.session_state[key]
         st.session_state.daily_data = {}
-        st.rerun()
+        st.success("All data has been reset!")
 
 else:
     st.info("👆 Please enter your name in the sidebar to get started!")
@@ -241,7 +241,7 @@ else:
     st.write("""
     This Energy Consumption Calculator helps you track your daily electricity usage based on:
     
-    - **Room Usage**: Calculate base energy consumption for 1, 2, or 3 BHK
+    - **Room Usage**: Calculate base energy consumption per room (0.6 kWh per room)
     - **Air Conditioning**: Track AC usage (3 kWh per unit)
     - **Appliances**: Monitor fridge and washing machine usage (4 kWh each)
     - **Weekly Analysis**: Get insights into your consumption patterns
@@ -256,17 +256,16 @@ else:
     # Energy calculation formula
     st.subheader("⚡ Energy Calculation Formula")
     st.write("""
-    **Base Energy by Room Type:**
-    - 1 BHK: 2×0.4 + 2×0.8 = 2.4 kWh
-    - 2 BHK: 3×0.4 + 3×0.8 = 3.6 kWh  
-    - 3 BHK: 4×0.4 + 4×0.8 = 4.8 kWh
+    **Base Energy Calculation:**
+    - Per Room: 0.6 kWh
+    - Total Base Energy = Number of Rooms × 0.6 kWh
     
     **Additional Appliances:**
     - Air Conditioner: 3 kWh per unit
     - Refrigerator: 4 kWh (if used)
     - Washing Machine: 4 kWh (if used)
     
-    **Total = Base Energy + (AC Count × 3) + Fridge + Washing Machine**
+    **Total = (Rooms × 0.6) + (AC Count × 3) + Fridge + Washing Machine**
     """)
 
 # Footer
